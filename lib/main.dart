@@ -28,19 +28,24 @@ class _MyAppState extends State<MyApp> {
   double _currentPercentage = 0.0;
   String _percentageLabel = "0%";
 
+  int contactCount = 0;
+  double contactPercentage = 0.0;
+  String contactCountLabel = "0%";
+
   @override
   void initState() {
     super.initState();
 
-    initUsage();
+    
   }
 
-  Future<void> initUsage() async {
+  Future<void> initScreenTime() async {
     try {
       UsageStats.grantUsagePermission();
 
-      DateTime endDate = new DateTime.now();
-      DateTime startDate = endDate.subtract(Duration(days: 1));
+      DateTime endDate = DateTime.now();  // Current moment
+      DateTime startDate = endDate.subtract(Duration(days: 1));  // 24 hours ago from now
+
       
 
       List<EventUsageInfo> queryEvents = await UsageStats.queryEvents(startDate, endDate);
@@ -53,20 +58,21 @@ class _MyAppState extends State<MyApp> {
       for (var i in t) {
 
         if (double.parse(i.totalTimeInForeground!) > 0) {
+          
         
           _usageInfoMap[i.packageName] = i;
           
-          print(
-              DateTime.fromMillisecondsSinceEpoch(int.parse(i.firstTimeStamp!))
-                  .toIso8601String());
+           DateTime firstTimeStamp = DateTime.fromMillisecondsSinceEpoch(int.parse(i.firstTimeStamp!));
+            DateTime lastTimeStamp = DateTime.fromMillisecondsSinceEpoch(int.parse(i.lastTimeStamp!));
+            DateTime lastTimeUsed = DateTime.fromMillisecondsSinceEpoch(int.parse(i.lastTimeUsed!));
+            double timeInForegroundMinutes = int.parse(i.totalTimeInForeground!) / 1000 / 60;
 
-          print(DateTime.fromMillisecondsSinceEpoch(int.parse(i.lastTimeStamp!))
-              .toIso8601String());
-
-          print(i.packageName);
-          print(DateTime.fromMillisecondsSinceEpoch(int.parse(i.lastTimeUsed!))
-              .toIso8601String());
-          print(int.parse(i.totalTimeInForeground!) / 1000 / 60);
+            print("Package: ${i.packageName}");
+            print("First Time Stamp: $firstTimeStamp");
+            print("Last Time Stamp: $lastTimeStamp");
+            print("Last Time Used: $lastTimeUsed");
+            print("Time in Foreground (minutes): $timeInForegroundMinutes");
+    
 
           print('-----\n');
         }
@@ -102,6 +108,8 @@ Future<void> analyzeUsage() async {
     double callPercentage;
     double maxCalls = 4.36;
     double minCalls = 3.35;
+    
+    initScreenTime();
 
     if (callCount > maxCalls) {
       callPercentage = 0.0;
@@ -110,6 +118,20 @@ Future<void> analyzeUsage() async {
     } else {
       callPercentage = (maxCalls - callCount) / (maxCalls - minCalls);
     }
+
+    int totalContacts = await CallLogUtil.getContactCount();
+    double contactPercentageT;
+    double maxContacts = 72.57;
+    double minContacts = 56.43;
+
+    if (totalContacts > maxContacts) {
+      contactPercentageT = 0.0;
+    } else if (totalContacts < minContacts) {
+      contactPercentageT = 1.0;
+    } else {
+      contactPercentageT = (maxContacts - totalContacts) / (maxContacts - minContacts);
+    }
+  
 
     double minTime = 127.13;
     double maxTime = 164.0;
@@ -123,8 +145,9 @@ Future<void> analyzeUsage() async {
       screenTimePercentage = (totalScreenTimeMinutes - minTime) / (maxTime - minTime);
     }
 
+    
     // Calculate the average of call percentage and screen time percentage
-    double averagePercentage = (callPercentage + screenTimePercentage) / 2;
+    double averagePercentage = (callPercentage + screenTimePercentage + contactPercentageT) / 3;
 
     // Update state with new values
     setState(() {
@@ -135,6 +158,9 @@ Future<void> analyzeUsage() async {
       _percentageLabel = "${(screenTimePercentage * 100).toStringAsFixed(1)}%";
       overallPercentage = averagePercentage;
       overallPercentageLabel = "${(averagePercentage * 100).toStringAsFixed(1)}%";
+      contactCount = totalContacts;
+      contactPercentage = contactPercentageT;
+      contactCountLabel = "${(contactPercentage * 100).toStringAsFixed(1)}%";
     });
   } catch (e) {
     print("Error during analysis: $e");
@@ -160,8 +186,6 @@ Widget build(BuildContext context) {
         ],
       ),
       body: Center(
-        child: RefreshIndicator(
-          onRefresh: initUsage,
           child: ListView(
             children: [
               Container(
@@ -270,13 +294,73 @@ Widget build(BuildContext context) {
                         progressColor: Colors.green,
                       ),
                     ),
+                    SizedBox(height: 30),  // Space between the button and the bottom of the container
+                    Text(
+                      "Saved Contacts",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      "${contactCount.toStringAsFixed(2)} contacts",
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.black54,
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                    Center(
+                      child: LinearPercentIndicator(
+                        width: MediaQuery.of(context).size.width - 140,
+                        animation: true,
+                        lineHeight: 20.0,
+                        animationDuration: 1000,
+                        leading: new Text("72.57 <"),
+                        trailing: new Text("> 56.43"),
+                        percent: contactPercentage,
+                        center: Text(contactCountLabel),
+                        barRadius: Radius.circular(10),
+                        progressColor: Colors.green,
+                      ),
+                    ),
+                     SizedBox(height: 30),  // Space between the button and the bottom of the container
+                    Text(
+                      "Device Value",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      "${contactCount.toStringAsFixed(2)} contacts",
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.black54,
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                    Center(
+                      child: LinearPercentIndicator(
+                        width: MediaQuery.of(context).size.width - 140,
+                        animation: true,
+                        lineHeight: 20.0,
+                        animationDuration: 1000,
+                        leading: new Text("72.57 <"),
+                        trailing: new Text("> 56.43"),
+                        percent: contactPercentage,
+                        center: Text(contactCountLabel),
+                        barRadius: Radius.circular(10),
+                        progressColor: Colors.green,
+                      ),
+                    ),
                   ],
                 ),
               ),
               
             ],
           ),
-        ),
+        
       ),
     ),
   );

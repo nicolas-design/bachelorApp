@@ -5,22 +5,54 @@ import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import android.provider.CallLog
+import android.provider.ContactsContract
+import android.Manifest
+import androidx.core.content.ContextCompat
+import android.content.pm.PackageManager
+
 
 class MainActivity: FlutterActivity() {
     private val CHANNEL = "com.example.ba_app_flutter_1/call_log"
+    private val REQUEST_CONTACTS = 1
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler {
-            call, result ->
-            if (call.method == "getOutgoingCallsCount") {
-                val count = getOutgoingCallsCount()
+    call, result ->
+    when (call.method) {
+        "getOutgoingCallsCount" -> {
+            val count = getOutgoingCallsCount()
+            result.success(count)
+        }
+        "getContactCount" -> {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED) {
+                val count = getContactCount()
                 result.success(count)
             } else {
-                result.notImplemented()
+                result.error("PERMISSION_DENIED", "Access to contacts was denied", null)
             }
         }
+        else -> {
+            result.notImplemented()
+        }
     }
+}
+
+    }
+
+    private fun getContactCount(): Int {
+    val cursor = contentResolver.query(
+        ContactsContract.Contacts.CONTENT_URI,
+        null,   // projection (null to return all columns)
+        null,   // selection clause
+        null,   // selection arguments
+        null    // sort order
+    )
+    val count = cursor?.count ?: 0
+    cursor?.close()
+    return count
+}
+
 
     private fun getOutgoingCallsCount(): Int {
     // Calculate the timestamp for 24 hours ago
