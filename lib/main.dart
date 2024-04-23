@@ -333,7 +333,7 @@ Widget build(BuildContext context) {
                       ),
                     ),
                     Text(
-                      "${contactCount.toStringAsFixed(2)} contacts",
+                      "${contactCount.toStringAsFixed(2)} €",
                       style: TextStyle(
                         fontSize: 16,
                         color: Colors.black54,
@@ -353,18 +353,91 @@ Widget build(BuildContext context) {
                         barRadius: Radius.circular(10),
                         progressColor: Colors.green,
                       ),
+                      
                     ),
+                    
                   ],
                 ),
               ),
               
             ],
-          ),
-        
+          ), 
+               
       ),
+     floatingActionButton: Builder(
+  builder: (context) => FloatingActionButton(
+    onPressed: () {
+      showModalBottomSheet<void>(
+        context: context,
+        builder: (BuildContext context) {
+          // Bottom sheet content here
+          return SizedBox(
+                height: 200,
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      ElevatedButton(
+                        child: const Text('Add Device Value'),
+                        onPressed: (){ Navigator.pop(context);
+                        _showDeviceValueDialog(context);}
+                      ),
+                      ElevatedButton(
+                        child: const Text('Close BottomSheet'),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+        },
+      );
+    },
+    child: Icon(Icons.add),
+    backgroundColor: Colors.blue,
+  ),
+),
+
     ),
   );
 }
 
-
 }
+
+
+
+
+void _showDeviceValueDialog(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text("Enter Device Value"),
+        content: TextField(
+          autofocus: true,
+          keyboardType: TextInputType.numberWithOptions(decimal: true),
+        ),
+        actions: <Widget>[
+          TextButton(
+            child: Text('Cancel'),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
+          TextButton(
+            child: Text('Save'),
+            onPressed: () {
+              Navigator.of(context).pop();
+              // Handle saving the value here
+            },
+          ),
+        ],
+      );
+    },
+  );
+}
+
+
+
+
