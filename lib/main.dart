@@ -16,6 +16,9 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   List<EventUsageInfo> events = [];
   Map<String?, UsageInfo?> _usageInfoMap = Map();
+  List<String> socialMediaApps = ['instagram', 'facebook', 'snapchat'];
+
+  int standardCount = 4;
 
   double overallPercentage = 0.0;
   String overallPercentageLabel = "0%";
@@ -32,12 +35,57 @@ class _MyAppState extends State<MyApp> {
   double contactPercentage = 0.0;
   String contactCountLabel = "0%";
 
+  bool showDeviceValue = false;  // Controls the visibility
+  double deviceValue = 0.0;  
+  double deviceValuePercentage = 0.0;
+  String deviceValueLabel = "0%";
+
+  double totalSocialMediaTime = 0.0;
+  double socialMediaPercentage = 0.0;
+  String socialMediaLabel = "0%";
+
   @override
   void initState() {
     super.initState();
 
     
   }
+
+  void _showDeviceValueDialog(BuildContext context) {
+    TextEditingController _controller = TextEditingController();
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text("Enter Device Value"),
+        content: TextField(
+          controller: _controller,
+          autofocus: true,
+          keyboardType: TextInputType.numberWithOptions(decimal: true),
+        ),
+        actions: <Widget>[
+          TextButton(
+            child: Text('Cancel'),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
+          TextButton(
+            child: Text('Save'),
+            onPressed: () {
+               setState(() {
+                  deviceValue = double.tryParse(_controller.text) ?? 0.0;
+                  showDeviceValue = true; // Set this to true to show the device value and indicator
+                });
+              Navigator.of(context).pop();
+              // Handle saving the value here
+            },
+          ),
+        ],
+      );
+    },
+  );
+}
 
   Future<void> initScreenTime() async {
     try {
@@ -53,6 +101,7 @@ class _MyAppState extends State<MyApp> {
       
 
       Map<String?, double> manualAggregatedTimes = {};
+      double socialMediaTimeT = 0.0;
      
 
       for (var i in t) {
@@ -85,6 +134,9 @@ class _MyAppState extends State<MyApp> {
           double foregroundTime = double.parse(usageInfo.totalTimeInForeground!);
           if (!manualAggregatedTimes.containsKey(event.packageName)) {
             manualAggregatedTimes[event.packageName] = foregroundTime;
+            if (socialMediaApps.any((app) => event.packageName!.toLowerCase().contains(app))) {
+            socialMediaTimeT += foregroundTime;
+          }
           }
         }
       }
@@ -95,6 +147,7 @@ class _MyAppState extends State<MyApp> {
       this.setState(() {
         events = queryEvents.reversed.toList();
         totalScreenTimeMinutes = totalScreenTime / 1000 / 60;
+        totalSocialMediaTime = socialMediaTimeT / 1000 / 60;
       });
     } catch (err) {
       print(err);
@@ -145,9 +198,37 @@ Future<void> analyzeUsage() async {
       screenTimePercentage = (totalScreenTimeMinutes - minTime) / (maxTime - minTime);
     }
 
+    double minSocialMediaTime = 39.55;
+    double maxSocialMediaTime = 54.24;
+    double socialMediaPercentageT;
+
+    if (totalSocialMediaTime <= minSocialMediaTime) {
+      socialMediaPercentageT = 0.0;
+    } else if (totalSocialMediaTime >= maxSocialMediaTime) {
+      socialMediaPercentageT = 1.0;
+    } else {
+      socialMediaPercentageT = (totalSocialMediaTime - minSocialMediaTime) / (maxSocialMediaTime - minSocialMediaTime);
+    }
+
+    double deviceValuePercentageT = 0.0;
+    if (showDeviceValue) {
+      standardCount += 1;
+      double minDeviceValue = 414.78;
+      double maxDeviceValue = 491.94;
+      
+
+      if (deviceValue <= minDeviceValue) {
+        deviceValuePercentageT = 1.0;
+      } else if (deviceValue >= maxDeviceValue) {
+        deviceValuePercentageT = 0.0;
+      } else {
+        deviceValuePercentageT = (maxDeviceValue - deviceValue) / (maxDeviceValue - minDeviceValue);
+      }
+    }
+
     
     // Calculate the average of call percentage and screen time percentage
-    double averagePercentage = (callPercentage + screenTimePercentage + contactPercentageT) / 3;
+    double averagePercentage = (callPercentage + screenTimePercentage + contactPercentageT + deviceValuePercentageT + socialMediaPercentageT) / standardCount;
 
     // Update state with new values
     setState(() {
@@ -161,6 +242,10 @@ Future<void> analyzeUsage() async {
       contactCount = totalContacts;
       contactPercentage = contactPercentageT;
       contactCountLabel = "${(contactPercentage * 100).toStringAsFixed(1)}%";
+      deviceValuePercentage = deviceValuePercentageT;
+      deviceValueLabel = "${(deviceValuePercentage * 100).toStringAsFixed(1)}%";
+      socialMediaPercentage = socialMediaPercentageT;
+      socialMediaLabel = "${(socialMediaPercentageT * 100).toStringAsFixed(1)}%";
     });
   } catch (e) {
     print("Error during analysis: $e");
@@ -168,8 +253,78 @@ Future<void> analyzeUsage() async {
   }
 }
 
+void _editSocialMediaApps(BuildContext innerContext) {
+  showDialog(
+    context: innerContext,
+    builder: (BuildContext dialogContext) {
+      TextEditingController _controller = TextEditingController();
+
+      void addSocialMediaApp() {
+        if (_controller.text.isNotEmpty) {
+          setState(() {
+            socialMediaApps.add(_controller.text.toLowerCase());
+            _controller.clear();  // Clear the text field after adding the app
+          });
+        }
+      }
+
+      return AlertDialog(
+        title: Text("Edit Social Media Apps"),
+        content: Container(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Expanded(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: socialMediaApps.length,
+                  itemBuilder: (BuildContext itemContext, int index) {
+                    return ListTile(
+                      title: Text(socialMediaApps[index]),
+                      trailing: IconButton(
+                        icon: Icon(Icons.delete),
+                        onPressed: () {
+                          setState(() {
+                            socialMediaApps.removeAt(index);
+                          });
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ),
+              TextField(
+                controller: _controller,
+                decoration: InputDecoration(
+                  labelText: "Add New App",
+                ),
+                onSubmitted: (String value) {
+                  addSocialMediaApp();
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: <Widget>[
+          TextButton(
+            child: Text('Add'),
+            onPressed: addSocialMediaApp,
+          ),
+          TextButton(
+            child: Text('Done'),
+            onPressed: () {
+              Navigator.of(dialogContext).pop();  // Close the dialog
+            },
+          ),
+        ],
+      );
+    },
+  );
+}
 
 
+ 
 
 
 @override
@@ -266,6 +421,46 @@ Widget build(BuildContext context) {
                     ),
                     SizedBox(height: 30),  // Space between the button and the bottom of the container
                     Text(
+                      "Total Social Media Time",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      "${totalSocialMediaTime.toStringAsFixed(2)} minutes",
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.black54,
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                    Center(
+                      child: LinearPercentIndicator(
+                        width: MediaQuery.of(context).size.width - 200,
+                        animation: true,
+                        lineHeight: 20.0,
+                        animationDuration: 1000,
+                        leading: new Text("> 39.55 min"),
+                        trailing: new Text("54.24 min <"),
+                        percent: socialMediaPercentage,
+                        center: Text(socialMediaLabel),
+                        barRadius: Radius.circular(10),
+                        progressColor: Colors.green,
+                      ),
+                      
+                    ),
+                    SizedBox(height: 15),  // Space between the button and the bottom of the container
+                     Builder(
+                    builder: (BuildContext innerContext) {
+                      return OutlinedButton(
+                        onPressed: () => _editSocialMediaApps(innerContext),
+                        child: Text('Edit'),
+                      );
+                    }
+                  ),
+                    SizedBox(height: 30),  // Space between the button and the bottom of the container
+                    Text(
                       "Outgoing Calls",
                       style: TextStyle(
                         fontSize: 18,
@@ -324,37 +519,40 @@ Widget build(BuildContext context) {
                         progressColor: Colors.green,
                       ),
                     ),
-                     SizedBox(height: 30),  // Space between the button and the bottom of the container
-                    Text(
-                      "Device Value",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                     
+                    if (showDeviceValue) ...[
+                      SizedBox(height: 30),  // Space between the button and the bottom of the container
+                      Text(
+                        "Device Value",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    Text(
-                      "${contactCount.toStringAsFixed(2)} €",
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.black54,
+                      Text(
+                        "${deviceValue.toStringAsFixed(2)} €",
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.black54,
+                        ),
                       ),
-                    ),
-                    SizedBox(height: 20),
-                    Center(
+                      SizedBox(height: 20),
+                       Center(
                       child: LinearPercentIndicator(
-                        width: MediaQuery.of(context).size.width - 140,
+                        width: MediaQuery.of(context).size.width - 180,
                         animation: true,
                         lineHeight: 20.0,
                         animationDuration: 1000,
-                        leading: new Text("72.57 <"),
-                        trailing: new Text("> 56.43"),
-                        percent: contactPercentage,
-                        center: Text(contactCountLabel),
+                        leading: new Text("> 491.94 €"),
+                        trailing: new Text("414.78 € <"),
+                        percent: deviceValuePercentage,
+                        center: Text(deviceValueLabel),
                         barRadius: Radius.circular(10),
                         progressColor: Colors.green,
                       ),
                       
                     ),
+                    ],
                     
                   ],
                 ),
@@ -384,7 +582,7 @@ Widget build(BuildContext context) {
                         _showDeviceValueDialog(context);}
                       ),
                       ElevatedButton(
-                        child: const Text('Close BottomSheet'),
+                        child: const Text('Close'),
                         onPressed: () => Navigator.pop(context),
                       ),
                     ],
@@ -401,6 +599,7 @@ Widget build(BuildContext context) {
 
     ),
   );
+  
 }
 
 }
@@ -408,35 +607,7 @@ Widget build(BuildContext context) {
 
 
 
-void _showDeviceValueDialog(BuildContext context) {
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: Text("Enter Device Value"),
-        content: TextField(
-          autofocus: true,
-          keyboardType: TextInputType.numberWithOptions(decimal: true),
-        ),
-        actions: <Widget>[
-          TextButton(
-            child: Text('Cancel'),
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-          ),
-          TextButton(
-            child: Text('Save'),
-            onPressed: () {
-              Navigator.of(context).pop();
-              // Handle saving the value here
-            },
-          ),
-        ],
-      );
-    },
-  );
-}
+
 
 
 
