@@ -9,6 +9,14 @@ import android.provider.ContactsContract
 import android.Manifest
 import androidx.core.content.ContextCompat
 import android.content.pm.PackageManager
+import android.app.usage.UsageStatsManager
+import android.content.Intent
+import android.provider.Settings
+import android.os.Bundle
+import android.app.AppOpsManager
+import android.content.Context
+import android.app.usage.UsageEvents
+
 
 
 class MainActivity: FlutterActivity() {
@@ -32,6 +40,22 @@ class MainActivity: FlutterActivity() {
                 result.error("PERMISSION_DENIED", "Access to contacts was denied", null)
             }
         }
+        "getTotalScreenTime" -> {
+                if (checkUsageStatsPermission()) {
+                    val totalScreenTime = getTotalScreenTime()
+                    result.success(totalScreenTime)
+                } else {
+                    result.error("PERMISSION_DENIED", "Usage stats permission not granted", null)
+                }
+            }
+            "getMeanSessionTime" -> {
+                if (checkUsageStatsPermission()) {
+                    val meanSessionTime = getMeanSessionTime()
+                    result.success(meanSessionTime)
+                } else {
+                    result.error("PERMISSION_DENIED", "Usage stats permission not granted", null)
+                }
+            }
         else -> {
             result.notImplemented()
         }
@@ -77,4 +101,73 @@ class MainActivity: FlutterActivity() {
     cursor?.close()
     return count
 }
+private fun checkUsageStatsPermission(): Boolean {
+    val appOps = getSystemService(APP_OPS_SERVICE) as AppOpsManager
+    val mode = appOps.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS,
+                                     android.os.Process.myUid(), packageName)
+    return mode == AppOpsManager.MODE_ALLOWED
+}
+private fun requestUsageStatsPermission() {
+    if (!checkUsageStatsPermission()) {
+        startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+    }
+}
+
+override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
+    requestUsageStatsPermission()
+}
+
+private fun getTotalScreenTime(): Long {
+    val usageStatsManager = getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+    val endTime = System.currentTimeMillis()
+    val startTime = endTime - 24 * 60 * 60 * 1000 // 24 hours ago
+
+    val queryUsageStats = usageStatsManager.queryAndAggregateUsageStats(startTime, endTime)
+    var totalScreenTime = 0L
+
+    queryUsageStats.forEach { _, usageStats ->
+        totalScreenTime += usageStats.totalTimeInForeground
+    }
+
+    return totalScreenTime
+}
+
+private fun getMeanSessionTime(): Double {
+    val usageStatsManager = getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+    val endTime = System.currentTimeMillis()
+    val startTime = endTime - 24 * 60 * 60 * 1000 // 24 hours ago
+
+    // Get the usage events within the last 24 hours
+    val events = usageStatsManager.queryEvents(startTime, endTime)
+    val event = UsageEvents.Event()
+    val sessionTimes = mutableListOf<Long>()
+
+    var lastStartTime = 0L
+
+    while (events.hasNextEvent()) {
+        events.getNextEvent(event)
+        when (event.eventType) {
+            UsageEvents.Event.MOVE_TO_FOREGROUND -> {
+                lastStartTime = event.timeStamp
+            }
+            UsageEvents.Event.MOVE_TO_BACKGROUND -> {
+                if (lastStartTime != 0L) {
+                    val sessionLength = event.timeStamp - lastStartTime
+                    sessionTimes.add(sessionLength)
+                    lastStartTime = 0L // Reset last start time
+                }
+            }
+        }
+    }
+
+    // Calculate the mean session time
+    return if (sessionTimes.isNotEmpty()) {
+        sessionTimes.average()
+    } else {
+        0.0 // No sessions were found
+    }
+}
+
+
 }

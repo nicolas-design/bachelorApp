@@ -1,3 +1,5 @@
+import 'dart:ffi';
+
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:usage_stats/usage_stats.dart';
@@ -17,8 +19,9 @@ class _MyAppState extends State<MyApp> {
   List<EventUsageInfo> events = [];
   Map<String?, UsageInfo?> _usageInfoMap = Map();
   List<String> socialMediaApps = ['instagram', 'facebook', 'snapchat'];
+  int selectedDays = 1;
 
-  int standardCount = 4;
+  int standardCount = 5;
 
   double overallPercentage = 0.0;
   String overallPercentageLabel = "0%";
@@ -43,6 +46,10 @@ class _MyAppState extends State<MyApp> {
   double totalSocialMediaTime = 0.0;
   double socialMediaPercentage = 0.0;
   String socialMediaLabel = "0%";
+
+  double meanSessionTime = 0.0;
+  double meanSessionTimePercentage = 0.0;
+  String meanSessionTimeLabel = "0%";
 
   @override
   void initState() {
@@ -87,6 +94,40 @@ class _MyAppState extends State<MyApp> {
   );
 }
 
+void _showDaysSelectionDialog(BuildContext context) {
+    TextEditingController _daysController = TextEditingController(text: selectedDays.toString());
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Select Number of Days"),
+          content: TextField(
+            controller: _daysController,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(hintText: "Enter number of days"),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: Text('Save'),
+              onPressed: () {
+                setState(() {
+                  selectedDays = int.tryParse(_daysController.text) ?? 1;
+                });
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> initScreenTime() async {
     try {
       UsageStats.grantUsagePermission();
@@ -101,6 +142,7 @@ class _MyAppState extends State<MyApp> {
       
 
       Map<String?, double> manualAggregatedTimes = {};
+      
       double socialMediaTimeT = 0.0;
      
 
@@ -161,6 +203,10 @@ Future<void> analyzeUsage() async {
     double callPercentage;
     double maxCalls = 4.36;
     double minCalls = 3.35;
+
+    UsageStats2().getTotalScreenTime();
+    double meanSessionTimeT = await UsageStats2().getMeanSessionTime() / 1000 / 60;
+    
     
     initScreenTime();
 
@@ -226,9 +272,21 @@ Future<void> analyzeUsage() async {
       }
     }
 
+    double meanSessionTimePercentageT;
+    double minMeanSessionTime = 1.07;
+    double maxMeanSessionTime = 2.49;
+
+    if (meanSessionTimeT <= minMeanSessionTime) {
+      meanSessionTimePercentageT = 0.0;
+    } else if (meanSessionTimeT >= maxMeanSessionTime) {
+      meanSessionTimePercentageT = 1.0;
+    } else {
+      meanSessionTimePercentageT = (meanSessionTimeT - minMeanSessionTime) / (maxMeanSessionTime - minMeanSessionTime);
+    }
+
     
     // Calculate the average of call percentage and screen time percentage
-    double averagePercentage = (callPercentage + screenTimePercentage + contactPercentageT + deviceValuePercentageT + socialMediaPercentageT) / standardCount;
+    double averagePercentage = (callPercentage + screenTimePercentage + contactPercentageT + deviceValuePercentageT + socialMediaPercentageT + meanSessionTimePercentageT) / standardCount;
 
     // Update state with new values
     setState(() {
@@ -246,6 +304,9 @@ Future<void> analyzeUsage() async {
       deviceValueLabel = "${(deviceValuePercentage * 100).toStringAsFixed(1)}%";
       socialMediaPercentage = socialMediaPercentageT;
       socialMediaLabel = "${(socialMediaPercentageT * 100).toStringAsFixed(1)}%";
+      meanSessionTime = meanSessionTimeT;
+      meanSessionTimePercentage = meanSessionTimePercentageT ;
+      meanSessionTimeLabel = "${(meanSessionTimePercentageT * 100).toStringAsFixed(1)}%";
     });
   } catch (e) {
     print("Error during analysis: $e");
@@ -360,6 +421,18 @@ Widget build(BuildContext context) {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
+                    SizedBox(height: 20),
+                      Builder(
+                    builder: (BuildContext innerContext) {
+                      return OutlinedButton(
+                      onPressed: () {
+                        _showDaysSelectionDialog(innerContext);
+                      },
+                      child: Text("Days: $selectedDays"),
+                      
+                    );
+                    }
+                  ),
                     
                     SizedBox(height: 20),
                     CircularPercentIndicator(  // Add this widget here
@@ -375,7 +448,8 @@ Widget build(BuildContext context) {
                       circularStrokeCap: CircularStrokeCap.round,
                       progressColor: Colors.green,
                     ),
-                    SizedBox(height: 30),  // Space between the circle and the button
+                    SizedBox(height: 30), 
+                     // Space between the circle and the button
                     ElevatedButton(
                       onPressed: () {
                         // Action to perform on button press
@@ -389,6 +463,10 @@ Widget build(BuildContext context) {
                         foregroundColor: Colors.white,  // Correct property for text color
                       ),
                     ),
+                     SizedBox(height: 20),
+                    
+                   
+                    
                     SizedBox(height: 50),  // Space between the button and the bottom of the container
                     Text(
                       "Total Screen Time",
@@ -459,6 +537,36 @@ Widget build(BuildContext context) {
                       );
                     }
                   ),
+                  SizedBox(height: 30),  // Space between the button and the bottom of the container
+                    Text(
+                      "Mean Session Time",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      "${meanSessionTime.toStringAsFixed(2)} minutes",
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.black54,
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                    Center(
+                      child: LinearPercentIndicator(
+                        width: MediaQuery.of(context).size.width - 200,
+                        animation: true,
+                        lineHeight: 20.0,
+                        animationDuration: 1000,
+                        leading: new Text("> 1.07 min"),
+                        trailing: new Text("2.49 min <"),
+                        percent: meanSessionTimePercentage,
+                        center: Text(meanSessionTimeLabel),
+                        barRadius: Radius.circular(10),
+                        progressColor: Colors.green,
+                      ),
+                    ),
                     SizedBox(height: 30),  // Space between the button and the bottom of the container
                     Text(
                       "Outgoing Calls",

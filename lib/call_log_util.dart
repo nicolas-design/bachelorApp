@@ -20,6 +20,32 @@ class PermissionService {
   }
 }
 
+class UsageStats2 {
+  static final platform = MethodChannel('com.example.ba_app_flutter_1/call_log');
+
+  Future<void> getTotalScreenTime() async {
+    try {
+      final int totalScreenTime = await platform.invokeMethod('getTotalScreenTime');
+      print("Total screen time in ms: $totalScreenTime");
+    } on PlatformException catch (e) {
+      print("Failed to get total screen time: '${e.message}'");
+    }
+  }
+
+  Future<double> getMeanSessionTime() async {
+    try {
+      final double meanSessionTime = await platform.invokeMethod('getMeanSessionTime');
+      print("Mean session time in ms: $meanSessionTime");
+      return meanSessionTime; // Return the mean session time
+    } on PlatformException catch (e) {
+      print("Failed to get mean session time: '${e.message}'");
+      return 0.0; // Return zero or handle accordingly
+    }
+  }
+  
+}
+
+
 class CallLogUtil {
   static final platform = MethodChannel('com.example.ba_app_flutter_1/call_log');
 
