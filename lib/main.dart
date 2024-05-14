@@ -133,7 +133,7 @@ void _showDaysSelectionDialog(BuildContext context) {
       UsageStats.grantUsagePermission();
 
       DateTime endDate = DateTime.now();  // Current moment
-      DateTime startDate = endDate.subtract(Duration(days: 1));  // 24 hours ago from now
+      DateTime startDate = endDate.subtract(Duration(days: selectedDays));  // 24 hours ago from now
 
       
 
@@ -188,8 +188,8 @@ void _showDaysSelectionDialog(BuildContext context) {
 
       this.setState(() {
         events = queryEvents.reversed.toList();
-        totalScreenTimeMinutes = totalScreenTime / 1000 / 60;
-        totalSocialMediaTime = socialMediaTimeT / 1000 / 60;
+        totalScreenTimeMinutes = (totalScreenTime / 1000 / 60) / selectedDays;
+        totalSocialMediaTime = (socialMediaTimeT / 1000 / 60) / selectedDays;
       });
     } catch (err) {
       print(err);
@@ -205,7 +205,7 @@ Future<void> analyzeUsage() async {
     double minCalls = 3.35;
 
     UsageStats2().getTotalScreenTime();
-    double meanSessionTimeT = await UsageStats2().getMeanSessionTime() / 1000 / 60;
+    double meanSessionTimeT = await UsageStats2().getMeanSessionTime(days: selectedDays) / 1000 / 60;
     
     
     initScreenTime();

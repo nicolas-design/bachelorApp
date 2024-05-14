@@ -16,6 +16,8 @@ import android.os.Bundle
 import android.app.AppOpsManager
 import android.content.Context
 import android.app.usage.UsageEvents
+import android.util.Log
+
 
 
 
@@ -50,7 +52,9 @@ class MainActivity: FlutterActivity() {
             }
             "getMeanSessionTime" -> {
                 if (checkUsageStatsPermission()) {
-                    val meanSessionTime = getMeanSessionTime()
+                    val startTime = call.argument<Long>("startTime") ?: return@setMethodCallHandler
+                    val endTime = call.argument<Long>("endTime") ?: return@setMethodCallHandler
+                    val meanSessionTime = getMeanSessionTime(startTime, endTime)
                     result.success(meanSessionTime)
                 } else {
                     result.error("PERMISSION_DENIED", "Usage stats permission not granted", null)
@@ -133,10 +137,10 @@ private fun getTotalScreenTime(): Long {
     return totalScreenTime
 }
 
-private fun getMeanSessionTime(): Double {
+private fun getMeanSessionTime(startTime: Long, endTime: Long): Double {
+    Log.d("SessionTime", "StartTime: $startTime, EndTime: $endTime")
     val usageStatsManager = getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
-    val endTime = System.currentTimeMillis()
-    val startTime = endTime - 24 * 60 * 60 * 1000 // 24 hours ago
+    
 
     // Get the usage events within the last 24 hours
     val events = usageStatsManager.queryEvents(startTime, endTime)

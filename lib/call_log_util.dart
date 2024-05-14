@@ -32,9 +32,18 @@ class UsageStats2 {
     }
   }
 
-  Future<double> getMeanSessionTime() async {
+  Future<double> getMeanSessionTime({required int days}) async {
     try {
-      final double meanSessionTime = await platform.invokeMethod('getMeanSessionTime');
+      final DateTime now = DateTime.now();
+    final int endTime = now.millisecondsSinceEpoch;
+    final int startTime = now.subtract(Duration(days: days)).millisecondsSinceEpoch;
+    
+    print("Darti - StartTime: $startTime, EndTime: $endTime");
+      
+      final double meanSessionTime = await platform.invokeMethod(
+        'getMeanSessionTime',
+        {'startTime': startTime, 'endTime': endTime}
+      );
       print("Mean session time in ms: $meanSessionTime");
       return meanSessionTime; // Return the mean session time
     } on PlatformException catch (e) {
