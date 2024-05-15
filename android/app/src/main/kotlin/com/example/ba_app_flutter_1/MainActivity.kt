@@ -31,7 +31,9 @@ class MainActivity: FlutterActivity() {
     call, result ->
     when (call.method) {
         "getOutgoingCallsCount" -> {
-            val count = getOutgoingCallsCount()
+            val startTime = call.argument<Long>("startTime") ?: System.currentTimeMillis() - 24 * 60 * 60 * 1000  // Default to 24 hours ago if not specified
+            val endTime = call.argument<Long>("endTime") ?: System.currentTimeMillis()
+            val count = getOutgoingCallsCount(startTime, endTime)
             result.success(count)
         }
         "getContactCount" -> {
@@ -82,14 +84,11 @@ class MainActivity: FlutterActivity() {
 }
 
 
-    private fun getOutgoingCallsCount(): Int {
-    // Calculate the timestamp for 24 hours ago
-    val oneDayAgoMillis = System.currentTimeMillis() - (24*60*60 * 1000)
-    
+    private fun getOutgoingCallsCount(startTime: Long, endTime: Long): Double {
 
     // Define the selection criteria for the query to get only outgoing calls from the last 24 hours
-    val selection = "${CallLog.Calls.TYPE} = ? AND ${CallLog.Calls.DATE} >= ?"
-    val selectionArgs = arrayOf(CallLog.Calls.OUTGOING_TYPE.toString(), oneDayAgoMillis.toString())
+    val selection = "${CallLog.Calls.TYPE} = ? AND ${CallLog.Calls.DATE} >= ? AND ${CallLog.Calls.DATE} <= ?"
+    val selectionArgs = arrayOf(CallLog.Calls.OUTGOING_TYPE.toString(), startTime.toString(), endTime.toString())
 
     // Query the call log with the specified selection criteria
     val cursor = contentResolver.query(
@@ -103,7 +102,13 @@ class MainActivity: FlutterActivity() {
     // Count the number of records in the cursor
     val count = cursor?.count ?: 0
     cursor?.close()
-    return count
+
+    val days = (endTime - startTime) / (24 * 60 * 60 * 1000.0)  // milliseconds to days
+    if (days == 0.0) return 0.0  // Avoid division by zero
+
+    // Calculate the daily average
+    return count / days
+
 }
 private fun checkUsageStatsPermission(): Boolean {
     val appOps = getSystemService(APP_OPS_SERVICE) as AppOpsManager

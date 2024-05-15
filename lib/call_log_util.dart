@@ -58,13 +58,20 @@ class UsageStats2 {
 class CallLogUtil {
   static final platform = MethodChannel('com.example.ba_app_flutter_1/call_log');
 
-  static Future<int> getOutgoingCallsCount() async {
+  static Future<double> getOutgoingCallsCount(int days) async {
     if (!await PermissionService.requestCallLogPermission()) {
       print("Call Log permission not granted");
       return 0;
     }
     try {
-      final int result = await platform.invokeMethod('getOutgoingCallsCount');
+       final DateTime now = DateTime.now();
+    final int endTime = now.millisecondsSinceEpoch;
+    final int startTime = now.subtract(Duration(days: days)).millisecondsSinceEpoch;
+    print("Calls - StartTime: $startTime, EndTime: $endTime");
+       final double result = await platform.invokeMethod('getOutgoingCallsCount', {
+        'startTime': startTime,
+        'endTime': endTime,
+      });
       print('Outgoing calls count: $result');
       return result;
     } catch (e) {

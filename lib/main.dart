@@ -199,7 +199,7 @@ void _showDaysSelectionDialog(BuildContext context) {
 Future<void> analyzeUsage() async {
   try {
     // Fetching outgoing call count
-    int callCount = await CallLogUtil.getOutgoingCallsCount();
+    double callCount = await CallLogUtil.getOutgoingCallsCount(selectedDays);
     double callPercentage;
     double maxCalls = 4.36;
     double minCalls = 3.35;
