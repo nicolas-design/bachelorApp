@@ -21,7 +21,7 @@ class _MyAppState extends State<MyApp> {
   List<String> socialMediaApps = ['instagram', 'facebook', 'snapchat'];
   int selectedDays = 1;
 
-  int standardCount = 5;
+  int standardCount = 6;
 
   double overallPercentage = 0.0;
   String overallPercentageLabel = "0%";
@@ -29,6 +29,14 @@ class _MyAppState extends State<MyApp> {
   double outgoingCallsCount = 0;
   double outgoingCallsPercentage = 0.0;
   String outgoingCallsCountLabel = "0%";
+
+  double incomingCallsCount = 0;
+  double incomingCallsPercentage = 0.0;
+  String incomingCallsCountLabel = "0%";
+
+  double outgoingCallsAverageDurationCount = 0;
+  double outgoingCallsAverageDurationPercentage = 0.0;
+  String outgoingCallsAverageDurationCountLabel = "0%";
 
  double totalScreenTimeMinutes = 0;
   double _currentPercentage = 0.0;
@@ -185,6 +193,7 @@ void _showDaysSelectionDialog(BuildContext context) {
 
 
       double totalScreenTime = manualAggregatedTimes.values.fold(0, (previousValue, element) => previousValue + element);
+      print("Total Screen Time: $totalScreenTime");
 
       this.setState(() {
         events = queryEvents.reversed.toList();
@@ -203,7 +212,17 @@ Future<void> analyzeUsage() async {
     double callPercentage;
     double maxCalls = 4.36;
     double minCalls = 3.35;
+    
+    double incomingCallCount1 = await CallLogUtil.getIncomingCallsCount(selectedDays);
+    double incomingCallPercentage1;
+    double maxIncomingCalls1 = 5.15;
+    double minIncomingCalls1 = 4.23;
 
+    double outgoingCallsAverageDurationCount1 = await CallLogUtil.getOutgoingCallsAverageDuration(selectedDays) /60;
+    double outgoingCallsAverageDurationPercentage1;
+    double maxOutgoingCallsAverageDuration1 = 7.89;
+    double minOutgoingCallsAverageDuration1 = 6.84;
+    
     UsageStats2().getTotalScreenTime();
     double meanSessionTimeT = await UsageStats2().getMeanSessionTime(days: selectedDays) / 1000 / 60;
     
@@ -216,6 +235,22 @@ Future<void> analyzeUsage() async {
       callPercentage = 1.0;
     } else {
       callPercentage = (maxCalls - callCount) / (maxCalls - minCalls);
+    }
+
+    if (incomingCallCount1 > maxIncomingCalls1) {
+      incomingCallPercentage1 = 0.0;
+    } else if (incomingCallCount1 < minIncomingCalls1) {
+      incomingCallPercentage1 = 1.0;
+    } else {
+      incomingCallPercentage1 = (maxIncomingCalls1 - incomingCallCount1) / (maxIncomingCalls1 - minIncomingCalls1);
+    }
+
+    if (outgoingCallsAverageDurationCount1 > maxOutgoingCallsAverageDuration1) {
+      outgoingCallsAverageDurationPercentage1 = 0.0;
+    } else if (outgoingCallsAverageDurationCount1 < minOutgoingCallsAverageDuration1) {
+      outgoingCallsAverageDurationPercentage1 = 1.0;
+    } else {
+      outgoingCallsAverageDurationPercentage1 = (maxOutgoingCallsAverageDuration1 - outgoingCallsAverageDurationCount1) / (maxOutgoingCallsAverageDuration1 - minOutgoingCallsAverageDuration1);
     }
 
     int totalContacts = await CallLogUtil.getContactCount();
@@ -286,13 +321,19 @@ Future<void> analyzeUsage() async {
 
     
     // Calculate the average of call percentage and screen time percentage
-    double averagePercentage = (callPercentage + screenTimePercentage + contactPercentageT + deviceValuePercentageT + socialMediaPercentageT + meanSessionTimePercentageT) / standardCount;
+    double averagePercentage = (callPercentage + screenTimePercentage + contactPercentageT + deviceValuePercentageT + socialMediaPercentageT + meanSessionTimePercentageT + incomingCallPercentage1) / standardCount;
 
     // Update state with new values
     setState(() {
       outgoingCallsCount = callCount.toDouble();
       outgoingCallsPercentage = callPercentage;
       outgoingCallsCountLabel = "${(callPercentage * 100).toStringAsFixed(1)}%";
+      incomingCallsCount = incomingCallCount1;
+      incomingCallsPercentage = incomingCallPercentage1;
+      incomingCallsCountLabel = "${(incomingCallPercentage1 * 100).toStringAsFixed(1)}%";
+      outgoingCallsAverageDurationCount = outgoingCallsAverageDurationCount1;
+      outgoingCallsAverageDurationPercentage = outgoingCallsAverageDurationPercentage1;
+      outgoingCallsAverageDurationCountLabel = "${(outgoingCallsAverageDurationPercentage1 * 100).toStringAsFixed(1)}%";
       _currentPercentage = screenTimePercentage;
       _percentageLabel = "${(screenTimePercentage * 100).toStringAsFixed(1)}%";
       overallPercentage = averagePercentage;
@@ -593,6 +634,66 @@ Widget build(BuildContext context) {
                         trailing: new Text("> 3.35"),
                         percent: outgoingCallsPercentage,
                         center: Text(outgoingCallsCountLabel),
+                        barRadius: Radius.circular(10),
+                        progressColor: Colors.green,
+                      ),
+                    ),
+                    SizedBox(height: 30),  // Space between the button and the bottom of the container
+                    Text(
+                      "Incoming Calls",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      "${incomingCallsCount.toStringAsFixed(2)} calls",
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.black54,
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                    Center(
+                      child: LinearPercentIndicator(
+                        width: MediaQuery.of(context).size.width - 120,
+                        animation: true,
+                        lineHeight: 20.0,
+                        animationDuration: 1000,
+                        leading: new Text("5.15 <"),
+                        trailing: new Text("> 4.23"),
+                        percent: incomingCallsPercentage,
+                        center: Text(incomingCallsCountLabel),
+                        barRadius: Radius.circular(10),
+                        progressColor: Colors.green,
+                      ),
+                    ),
+                     SizedBox(height: 30),  // Space between the button and the bottom of the container
+                    Text(
+                      "Outgoing Calls Average Duration",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      "${outgoingCallsAverageDurationCount.toStringAsFixed(2)} min",
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.black54,
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                    Center(
+                      child: LinearPercentIndicator(
+                        width: MediaQuery.of(context).size.width - 120,
+                        animation: true,
+                        lineHeight: 20.0,
+                        animationDuration: 1000,
+                        leading: new Text("7.89 <"),
+                        trailing: new Text("> 6.84"),
+                        percent: outgoingCallsAverageDurationPercentage,
+                        center: Text(outgoingCallsAverageDurationCountLabel),
                         barRadius: Radius.circular(10),
                         progressColor: Colors.green,
                       ),

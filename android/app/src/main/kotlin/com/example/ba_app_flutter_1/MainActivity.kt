@@ -36,6 +36,18 @@ class MainActivity: FlutterActivity() {
             val count = getOutgoingCallsCount(startTime, endTime)
             result.success(count)
         }
+        "getIncomingCallsCount" -> {
+                    val startTime = call.argument<Long>("startTime") ?: System.currentTimeMillis() - 24 * 60 * 60 * 1000  // Default to 24 hours ago if not specified
+                    val endTime = call.argument<Long>("endTime") ?: System.currentTimeMillis()
+                    val count = getIncomingCallsCount(startTime, endTime)
+                    result.success(count)
+        }
+         "getOutgoingCallsAverageDuration" -> {
+                    val startTime = call.argument<Long>("startTime") ?: System.currentTimeMillis() - 24 * 60 * 60 * 1000
+                    val endTime = call.argument<Long>("endTime") ?: System.currentTimeMillis()
+                    val avgDuration = getOutgoingCallsAverageDuration(startTime, endTime)
+                    result.success(avgDuration)
+                }
         "getContactCount" -> {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED) {
                 val count = getContactCount()
@@ -110,6 +122,56 @@ class MainActivity: FlutterActivity() {
     return count / days
 
 }
+
+  private fun getIncomingCallsCount(startTime: Long, endTime: Long): Double {
+        val selection = "${CallLog.Calls.TYPE} = ? AND ${CallLog.Calls.DATE} >= ? AND ${CallLog.Calls.DATE} <= ?"
+        val selectionArgs = arrayOf(CallLog.Calls.INCOMING_TYPE.toString(), startTime.toString(), endTime.toString())
+
+        val cursor = contentResolver.query(
+            CallLog.Calls.CONTENT_URI,
+            null,
+            selection,
+            selectionArgs,
+            null
+        )
+
+        val count = cursor?.count ?: 0
+        cursor?.close()
+
+        val days = (endTime - startTime) / (24 * 60 * 60 * 1000.0)
+        if (days == 0.0) return 0.0
+
+        return count / days
+    }
+
+    private fun getOutgoingCallsAverageDuration(startTime: Long, endTime: Long): Double {
+        val selection = "${CallLog.Calls.TYPE} = ? AND ${CallLog.Calls.DATE} >= ? AND ${CallLog.Calls.DATE} <= ?"
+        val selectionArgs = arrayOf(CallLog.Calls.OUTGOING_TYPE.toString(), startTime.toString(), endTime.toString())
+
+        val cursor = contentResolver.query(
+            CallLog.Calls.CONTENT_URI,
+            arrayOf(CallLog.Calls.DURATION),
+            selection,
+            selectionArgs,
+            null
+        )
+
+        var totalDuration = 0L
+        var count = 0
+
+        if (cursor != null) {
+            while (cursor.moveToNext()) {
+                totalDuration += cursor.getLong(cursor.getColumnIndex(CallLog.Calls.DURATION))
+                count++
+            }
+            cursor.close()
+        }
+
+        Log.d("OutgoingCalls", "Total duration: $totalDuration, Count: $count")
+
+        return if (count == 0) 0.0 else totalDuration.toDouble() / count
+    }
+
 private fun checkUsageStatsPermission(): Boolean {
     val appOps = getSystemService(APP_OPS_SERVICE) as AppOpsManager
     val mode = appOps.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS,

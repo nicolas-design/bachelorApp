@@ -80,6 +80,50 @@ class CallLogUtil {
     }
   }
 
+  static Future<double> getIncomingCallsCount(int days) async {
+    if (!await PermissionService.requestCallLogPermission()) {
+      print("Call Log permission not granted");
+      return 0;
+    }
+    try {
+       final DateTime now = DateTime.now();
+    final int endTime = now.millisecondsSinceEpoch;
+    final int startTime = now.subtract(Duration(days: days)).millisecondsSinceEpoch;
+    print("Calls - StartTime: $startTime, EndTime: $endTime");
+       final double result = await platform.invokeMethod('getIncomingCallsCount', {
+        'startTime': startTime,
+        'endTime': endTime,
+      });
+      print('Incoming calls count: $result');
+      return result;
+    } catch (e) {
+      print('Failed to get incoming calls count: $e');
+      return 0;
+    }
+  }
+
+  static Future<double> getOutgoingCallsAverageDuration(int days) async {
+    if (!await PermissionService.requestCallLogPermission()) {
+      print("Call Log permission not granted");
+      return 0;
+    }
+    try {
+      final DateTime now = DateTime.now();
+      final int endTime = now.millisecondsSinceEpoch;
+      final int startTime = now.subtract(Duration(days: days)).millisecondsSinceEpoch;
+      print("Calls - StartTime: $startTime, EndTime: $endTime");
+      final double result = await platform.invokeMethod('getOutgoingCallsAverageDuration', {
+        'startTime': startTime,
+        'endTime': endTime,
+      });
+      print('Outgoing calls average duration: $result');
+      return result;
+    } catch (e) {
+      print('Failed to get outgoing calls average duration: $e');
+      return 0;
+    }
+  }
+
   static Future<int> getContactCount() async {
     if (!await PermissionService.requestContactPermission()) {
       print("Contacts permission not granted");
