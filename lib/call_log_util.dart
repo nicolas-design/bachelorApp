@@ -32,6 +32,25 @@ class UsageStats2 {
     }
   }
 
+  Future<double> getMeanSessionTimeForApps(int days, List<String> appNames) async {
+    try {
+      final DateTime now = DateTime.now();
+      final int endTime = now.millisecondsSinceEpoch;
+      final int startTime = now.subtract(Duration(days: days)).millisecondsSinceEpoch;
+      print("Session Time for Apps - StartTime: $startTime, EndTime: $endTime, Apps: $appNames");
+      final double result = await platform.invokeMethod('getMeanSessionTimeForApps', {
+        'startTime': startTime,
+        'endTime': endTime,
+        'appNames': appNames,
+      });
+      print('Mean session time for apps: $result');
+      return result;
+    } catch (e) {
+      print('Failed to get mean session time for apps: $e');
+      return 0.0;
+    }
+  }
+
   Future<double> getMeanSessionTime({required int days}) async {
     try {
       final DateTime now = DateTime.now();

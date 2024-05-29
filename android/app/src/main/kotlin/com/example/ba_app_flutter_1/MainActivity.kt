@@ -64,6 +64,13 @@ class MainActivity: FlutterActivity() {
                     result.error("PERMISSION_DENIED", "Usage stats permission not granted", null)
                 }
             }
+            "getMeanSessionTimeForApps" -> {
+                    val startTime = call.argument<Long>("startTime") ?: System.currentTimeMillis() - 24 * 60 * 60 * 1000
+                    val endTime = call.argument<Long>("endTime") ?: System.currentTimeMillis()
+                    val appNames = call.argument<List<String>>("appNames") ?: listOf("com.instagram.android", "com.snapchat.android", "com.facebook.katana")
+                    val meanSessionTime = getMeanSessionTimeForApps(startTime, endTime, appNames)
+                    result.success(meanSessionTime)
+                }
             "getMeanSessionTime" -> {
                 if (checkUsageStatsPermission()) {
                     val startTime = call.argument<Long>("startTime") ?: return@setMethodCallHandler
@@ -203,6 +210,44 @@ private fun getTotalScreenTime(): Long {
 
     return totalScreenTime
 }
+
+private fun getMeanSessionTimeForApps(startTime: Long, endTime: Long, appNames: List<String>): Double {
+        Log.d("SessionTimeApps", "StartTime: $startTime, EndTime: $endTime, Apps: $appNames")
+        val usageStatsManager = getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+
+        val events = usageStatsManager.queryEvents(startTime, endTime)
+        val event = UsageEvents.Event()
+        val sessionTimes = mutableListOf<Long>()
+
+        var lastStartTime = 0L
+        var currentPackageName: String? = null
+
+        while (events.hasNextEvent()) {
+            events.getNextEvent(event)
+            if (appNames.contains(event.packageName)) {
+                when (event.eventType) {
+                    UsageEvents.Event.MOVE_TO_FOREGROUND -> {
+                        lastStartTime = event.timeStamp
+                        currentPackageName = event.packageName
+                    }
+                    UsageEvents.Event.MOVE_TO_BACKGROUND -> {
+                        if (lastStartTime != 0L && currentPackageName == event.packageName) {
+                            val sessionLength = event.timeStamp - lastStartTime
+                            sessionTimes.add(sessionLength)
+                            lastStartTime = 0L // Reset last start time
+                            currentPackageName = null
+                        }
+                    }
+                }
+            }
+        }
+
+        return if (sessionTimes.isNotEmpty()) {
+            sessionTimes.average() / 1000.0 // Return average session time in seconds
+        } else {
+            0.0
+        }
+    }
 
 private fun getMeanSessionTime(startTime: Long, endTime: Long): Double {
     Log.d("SessionTime", "StartTime: $startTime, EndTime: $endTime")

@@ -21,7 +21,7 @@ class _MyAppState extends State<MyApp> {
   List<String> socialMediaApps = ['instagram', 'facebook', 'snapchat'];
   int selectedDays = 1;
 
-  int standardCount = 6;
+  int standardCount = 7;
 
   double overallPercentage = 0.0;
   String overallPercentageLabel = "0%";
@@ -58,6 +58,10 @@ class _MyAppState extends State<MyApp> {
   double meanSessionTime = 0.0;
   double meanSessionTimePercentage = 0.0;
   String meanSessionTimeLabel = "0%";
+
+  double meanSessionTimeSocial = 0.0;
+  double meanSessionTimePercentageSocial = 0.0;
+  String meanSessionTimeLabelSocial = "0%";
 
   @override
   void initState() {
@@ -225,6 +229,8 @@ Future<void> analyzeUsage() async {
     
     UsageStats2().getTotalScreenTime();
     double meanSessionTimeT = await UsageStats2().getMeanSessionTime(days: selectedDays) / 1000 / 60;
+
+    double meanSessionTimeSocialT = await UsageStats2().getMeanSessionTimeForApps(selectedDays, socialMediaApps) / 1000 / 60;
     
     
     initScreenTime();
@@ -319,9 +325,21 @@ Future<void> analyzeUsage() async {
       meanSessionTimePercentageT = (meanSessionTimeT - minMeanSessionTime) / (maxMeanSessionTime - minMeanSessionTime);
     }
 
+    double meanSessionTimePercentageSocialT;
+    double minMeanSessionTimeSocial = 1.41;
+    double maxMeanSessionTimeSocial = 3.58;
+
+    if (meanSessionTimeSocialT <= minMeanSessionTimeSocial) {
+      meanSessionTimePercentageSocialT = 0.0;
+    } else if (meanSessionTimeSocialT >= maxMeanSessionTimeSocial) {
+      meanSessionTimePercentageSocialT = 1.0;
+    } else {
+      meanSessionTimePercentageSocialT = (meanSessionTimeSocialT - minMeanSessionTimeSocial) / (maxMeanSessionTimeSocial - minMeanSessionTimeSocial);
+    }
+
     
     // Calculate the average of call percentage and screen time percentage
-    double averagePercentage = (callPercentage + screenTimePercentage + contactPercentageT + deviceValuePercentageT + socialMediaPercentageT + meanSessionTimePercentageT + incomingCallPercentage1) / standardCount;
+    double averagePercentage = (callPercentage + screenTimePercentage + contactPercentageT + deviceValuePercentageT + socialMediaPercentageT + meanSessionTimePercentageT + incomingCallPercentage1 + meanSessionTimePercentageSocialT) / standardCount;
 
     // Update state with new values
     setState(() {
@@ -348,6 +366,9 @@ Future<void> analyzeUsage() async {
       meanSessionTime = meanSessionTimeT;
       meanSessionTimePercentage = meanSessionTimePercentageT ;
       meanSessionTimeLabel = "${(meanSessionTimePercentageT * 100).toStringAsFixed(1)}%";
+      meanSessionTimeSocial = meanSessionTimeSocialT;
+      meanSessionTimePercentageSocial = meanSessionTimePercentageSocialT;
+      meanSessionTimeLabelSocial = "${(meanSessionTimePercentageSocialT * 100).toStringAsFixed(1)}%";
     });
   } catch (e) {
     print("Error during analysis: $e");
@@ -604,6 +625,36 @@ Widget build(BuildContext context) {
                         trailing: new Text("2.49 min <"),
                         percent: meanSessionTimePercentage,
                         center: Text(meanSessionTimeLabel),
+                        barRadius: Radius.circular(10),
+                        progressColor: Colors.green,
+                      ),
+                    ),
+                    SizedBox(height: 30),  // Space between the button and the bottom of the container
+                    Text(
+                      "Mean Social Media Session Time",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      "${meanSessionTimeSocial.toStringAsFixed(2)} minutes",
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.black54,
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                    Center(
+                      child: LinearPercentIndicator(
+                        width: MediaQuery.of(context).size.width - 200,
+                        animation: true,
+                        lineHeight: 20.0,
+                        animationDuration: 1000,
+                        leading: new Text("> 1.41 min"),
+                        trailing: new Text("3.58 min <"),
+                        percent: meanSessionTimePercentageSocial,
+                        center: Text(meanSessionTimeLabelSocial),
                         barRadius: Radius.circular(10),
                         progressColor: Colors.green,
                       ),
