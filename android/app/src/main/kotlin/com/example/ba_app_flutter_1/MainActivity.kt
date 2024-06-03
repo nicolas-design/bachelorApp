@@ -212,42 +212,46 @@ private fun getTotalScreenTime(): Long {
 }
 
 private fun getMeanSessionTimeForApps(startTime: Long, endTime: Long, appNames: List<String>): Double {
-        Log.d("SessionTimeApps", "StartTime: $startTime, EndTime: $endTime, Apps: $appNames")
-        val usageStatsManager = getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+    Log.d("SessionTimeApps", "StartTime: $startTime, EndTime: $endTime, Apps: $appNames")
+    val usageStatsManager = getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
 
-        val events = usageStatsManager.queryEvents(startTime, endTime)
-        val event = UsageEvents.Event()
-        val sessionTimes = mutableListOf<Long>()
+    val events = usageStatsManager.queryEvents(startTime, endTime)
+    val event = UsageEvents.Event()
+    val sessionTimes = mutableListOf<Long>()
 
-        var lastStartTime = 0L
-        var currentPackageName: String? = null
+    var lastStartTime = 0L
+    var currentPackageName: String? = null
 
-        while (events.hasNextEvent()) {
-            events.getNextEvent(event)
-            if (appNames.contains(event.packageName)) {
-                when (event.eventType) {
-                    UsageEvents.Event.MOVE_TO_FOREGROUND -> {
-                        lastStartTime = event.timeStamp
-                        currentPackageName = event.packageName
-                    }
-                    UsageEvents.Event.MOVE_TO_BACKGROUND -> {
-                        if (lastStartTime != 0L && currentPackageName == event.packageName) {
-                            val sessionLength = event.timeStamp - lastStartTime
-                            sessionTimes.add(sessionLength)
-                            lastStartTime = 0L // Reset last start time
-                            currentPackageName = null
-                        }
+    while (events.hasNextEvent()) {
+        events.getNextEvent(event)
+
+        if (appNames.any { event.packageName.contains(it, ignoreCase = true) }) {
+            when (event.eventType) {
+                UsageEvents.Event.MOVE_TO_FOREGROUND -> {
+                    Log.d("SessionTimeApps", "Move to foreground: ${event.packageName} at ${event.timeStamp}")
+                    lastStartTime = event.timeStamp
+                    currentPackageName = event.packageName
+                }
+                UsageEvents.Event.MOVE_TO_BACKGROUND -> {
+                    if (lastStartTime != 0L && currentPackageName == event.packageName) {
+                        val sessionLength = event.timeStamp - lastStartTime
+                        Log.d("SessionTimeApps", "Move to background: ${event.packageName} at ${event.timeStamp} - Session length: $sessionLength")
+                        sessionTimes.add(sessionLength)
+                        lastStartTime = 0L // Reset last start time
+                        currentPackageName = null
                     }
                 }
             }
         }
-
-        return if (sessionTimes.isNotEmpty()) {
-            sessionTimes.average() / 1000.0 // Return average session time in seconds
-        } else {
-            0.0
-        }
     }
+
+    Log.d("SessionTimeApps", "SessionTimes: $sessionTimes")
+    return if (sessionTimes.isNotEmpty()) {
+        sessionTimes.average() 
+    } else {
+        0.0
+    }
+}
 
 private fun getMeanSessionTime(startTime: Long, endTime: Long): Double {
     Log.d("SessionTime", "StartTime: $startTime, EndTime: $endTime")
