@@ -82,6 +82,7 @@ class _MyAppState extends State<MyApp> {
           autofocus: true,
           keyboardType: TextInputType.numberWithOptions(decimal: true),
         ),
+       
         actions: <Widget>[
           TextButton(
             child: Text('Cancel'),
@@ -590,15 +591,7 @@ Widget build(BuildContext context) {
                       ),
                       
                     ),
-                    SizedBox(height: 15),  // Space between the button and the bottom of the container
-                     Builder(
-                    builder: (BuildContext innerContext) {
-                      return OutlinedButton(
-                        onPressed: () => _editSocialMediaApps(innerContext),
-                        child: Text('Edit'),
-                      );
-                    }
-                  ),
+                    
                   SizedBox(height: 30),  // Space between the button and the bottom of the container
                     Text(
                       "Mean Session Time",
@@ -840,6 +833,11 @@ Widget build(BuildContext context) {
                         child: const Text('Add Device Value'),
                         onPressed: (){ Navigator.pop(context);
                         _showDeviceValueDialog(context);}
+                      ),
+                       ElevatedButton(
+                        child: const Text('Edit Social Media Apps'),
+                        onPressed: (){ Navigator.pop(context);
+                        _editSocialMediaApps(context);}
                       ),
                       ElevatedButton(
                         child: const Text('Close'),
