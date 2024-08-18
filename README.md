@@ -22,7 +22,7 @@ Führe die folgenden Schritte aus, um das Projekt auf deinem lokalen System einz
    Klone dieses Repository auf deinen lokalen Computer.
    ```bash
    git clone https://github.com/nicolas-design/bachelorApp
-   cd usage-stats-app
+   cd ba_app_flutter_1
 
 3. **Abhängigkeiten installieren**:
 Navigiere in das Projektverzeichnis und führe den folgenden Befehl aus, um die benötigten Pakete zu installieren:
