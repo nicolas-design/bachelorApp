@@ -1,7 +1,7 @@
 # ba_app_flutter_1
 
 
-Dies ist eine Flutter-App zur Anzeige und Analyse von Nutzungsstatistiken in Korrelation mit Dpressionen. Die App zeigt verschiedene Informationen an, wie z. B. die Nutzungsdauer, die Bildschirmzeit, die durchschnittliche Sitzungsdauer und vieles mehr.
+Dies ist eine Flutter-App zur Anzeige und Analyse von Nutzungsstatistiken in Korrelation mit Depressionen. Die App zeigt verschiedene Informationen an, wie z. B. die Nutzungsdauer, die Bildschirmzeit, die durchschnittliche Sitzungsdauer und vieles mehr.
 
 ## Voraussetzungen
 
@@ -22,7 +22,7 @@ Führe die folgenden Schritte aus, um das Projekt auf deinem lokalen System einz
    Klone dieses Repository auf deinen lokalen Computer.
    ```bash
    git clone https://github.com/nicolas-design/bachelorApp
-   cd ba_app_flutter_1
+   cd bachelorApp-main
 
 3. **Abhängigkeiten installieren**:
 Navigiere in das Projektverzeichnis und führe den folgenden Befehl aus, um die benötigten Pakete zu installieren:
