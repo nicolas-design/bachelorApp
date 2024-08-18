@@ -70,6 +70,7 @@ class _MyAppState extends State<MyApp> {
     
   }
 
+
   void _showDeviceValueDialog(BuildContext context) {
     TextEditingController _controller = TextEditingController();
   showDialog(
@@ -377,6 +378,29 @@ Future<void> analyzeUsage() async {
   }
 }
 
+  void _showInfoDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Important Information"),
+          content: Text(
+            "This app does not save any of your data. The data is analyzed locally and the results are shown to you. "
+            "Please note that the results are not a diagnosis for depression or any other condition. "
+            "For a real diagnosis, please consult a healthcare professional.",
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text("OK"),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
 void _editSocialMediaApps(BuildContext innerContext) {
   showDialog(
     context: innerContext,
@@ -483,7 +507,25 @@ Widget build(BuildContext context) {
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
+                      
                     ),
+                     SizedBox(width: 8), // Space between the text and the icon
+                     Builder(
+                    builder: (BuildContext innerContext) {
+                      return OutlinedButton(
+                      onPressed: () {
+                        _showInfoDialog(innerContext);
+                      },
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide.none, // Optional: Remove the button border if you want only the icon to be visible
+                      ),
+                      child: Icon(Icons.info_outline),
+                      
+                    );
+                    }
+                  ),
+                     
+                      
                     SizedBox(height: 20),
                       Builder(
                     builder: (BuildContext innerContext) {
